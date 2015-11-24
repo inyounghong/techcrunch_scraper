@@ -87,6 +87,7 @@ if (isset($_POST['reset'])){
     if ($results){
         echo "Cleared database";
     }
+    mysqli_close($link);
 }
 
 // Inserts article into db and returns true if new
@@ -100,6 +101,7 @@ function insertNew($link, $id, $title, $desc, $body, $img, $video){
     $query = "INSERT INTO Articles(articleId, title, description, body, image, video) VALUES ('$id','$title','$desc','$body','$img','$video')";
 
     $results = mysqli_query($link, $query);
+    mysqli_close($link);
     return $results;
 }
 
