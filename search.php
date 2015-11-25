@@ -27,17 +27,23 @@ if (isset($_POST['search'])){
     if ($r) {
         // Display each result
         while ($row = mysqli_fetch_array($r)) {
-            print  "<div class='article'>
+            echo  "<div class='article'>
                         <h1>{$row['title']}</h1>
                         <p><b>Description</b>: {$row['description']}</p>
                         <p><b>Body</b>: {$row['body']}</p>
                         <img src='{$row['image']}'>
-                    </div>";
+                        ";
+            if ($row['video']){
+                echo "<p><b>Video</b>: <a href='{$row['video']}'>{$row['video']}</a></p>";
+            } else{
+                echo "<p><b>Video</b>: None</p>";
+            }
+            echo "</div>";
         }
     }
     else{
         // If error with select
-        print 'Could not retrieve data because ' . mysqli_error($link) . '<br>the query was ' . $query;
+        echo 'Could not retrieve data because ' . mysqli_error($link) . '<br>the query was ' . $query;
     }
 
     mysqli_close($link);

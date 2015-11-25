@@ -16,7 +16,7 @@
         <?php ini_set('display_errors', 'On'); ?>
 
         <form action="" method="post">
-            <input type="text" name="search_query" placeholder="Search Query">
+            <input type="text" name="search_query" placeholder="Search Query ie 'company'">
             <input type="submit" value="Search" name="search">
         </form>
 

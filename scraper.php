@@ -23,21 +23,11 @@ if (isset($_POST['scrape'])){
         foreach($html->find('li.river-block') as $li) {
             $id = $li->id;
             if ($id != 0){
-                // Parse title
+                // Parse article info
                 $title = $li->find('h2', 0);
                 $title_text = $title->plaintext;
-                
-                // Get article URL
                 $url = $title->find('a', 0)->href;
-                
-                // Parse excerpt
-                $description = $li->find('p.excerpt', 0);
-                $description_text = "";
-                if ($description){
-                    $description->find('a', 0)->innertext = "";
-                    $description->find('a', 0)->outertext = "";
-                    $description_text = $description->plaintext;
-                }
+                $description = getDescription($li);
 
                 // Go to article page to get full body text
                 $page_html = file_get_html($url);
@@ -50,14 +40,8 @@ if (isset($_POST['scrape'])){
                         $p->find('.aside', 0)->outertext = "";
                         $body .= '<p>' . $p->plaintext . '</p>';
                     }
-
-                    $hero_img = $page_html->find('.img-hero', 0);
-                    if ($hero_img){
-                        $img_src = $hero_img->src;
-                    }
-                    else {
-                        $img_src = $article->find('img', 0)->src;
-                    }
+                    // Get img
+                    $img_src = getImageSrc($page_html, $article);
                 }
                 else{
                     // Article is slideshow type
@@ -67,10 +51,10 @@ if (isset($_POST['scrape'])){
                     $img_src = $page_html->find('.slide', 0)->find('img', 0)->src;
                 }
 
-                $video = "";
+                $video = getVideo($article);
 
                 // If article already exits, no need to process rest of the articles
-                if (!insertNew($link, $id, $title_text, $description_text, $body, $img_src, $video)){
+                if (!insertNew($link, $id, $title_text, $description, $body, $img_src, $video)){
                     break;
                 } else{
                     $number_scraped++;
@@ -78,6 +62,28 @@ if (isset($_POST['scrape'])){
             }
         }
     }
+
+    // Video articles
+    $html = file_get_html("http://feeds.feedburner.com/techcrunch/podcast/crunch-report");
+    $i = 0;
+
+    // Loop through each video article
+    foreach ($html->find('item') as $li){
+        $title = $li->find('title', 0)->plaintext;
+        $desc = $li->find('description', 0)->plaintext;
+        $url = $li->find('enclosure');
+        $video = $url[0]->url;
+        $id_array = explode("_", end(explode("/", $video)));
+        $id = $id_array[0];
+
+        if ($i > 4 || !insertNew($link, $id, $title, $desc, "", "", $video) ){
+            break;
+        } else{
+            $number_scraped++;
+            $i++;
+        }
+    }
+
     echo "Scraped $number_scraped new article(s)";
     mysqli_close($link);
 }
@@ -85,10 +91,48 @@ if (isset($_POST['scrape'])){
 // Reseting database
 if (isset($_POST['reset'])){
     $link = mysqli_connect("127.0.0.1", "testdb_admin", "majesticeagle", "testdb");
+
+    // Run delete query
     $query = "DELETE FROM Articles";
     $results = mysqli_query($link, $query);
     if ($results){
         echo "Cleared database";
+    }
+}
+
+function getDescription($li){
+    $desc = $li->find('p.excerpt', 0);
+    if ($desc){
+        $desc->find('a', 0)->innertext = "";
+        $desc->find('a', 0)->outertext = "";
+        return $desc->plaintext;
+    }
+    return "None";
+}
+
+// Returns video for article
+function getVideo($article){
+    if (!$article) return "";
+    $video = $article->find(".youtube-player", 0);
+    if ($video){
+        $videos = explode("?", $video->src);
+        return $videos[0];
+    }
+    return "";
+}
+
+// Returns image src for article
+function getImageSrc($page, $article){
+    $hero_img = $page->find('.img-hero', 0);
+    if ($hero_img){
+        return $hero_img->src;
+    }
+    else {
+        $img = $article->find('img', 0);
+        if ($img){
+            return $article->find('img', 0)->src;
+        }
+        return "";
     }
 }
 
@@ -105,8 +149,6 @@ function insertNew($link, $id, $title, $desc, $body, $img, $video){
     $results = mysqli_query($link, $query);
     return $results;
 }
-
-
 
 ?>
 
